@@ -5,7 +5,7 @@
 #ifndef DEVICE_DRIVERS_GPIO_H_
 #define DEVICE_DRIVERS_GPIO_H_
 
-#include "../stm32f446xx.h"
+#include "../device_headers/stm32f446xx.h"
 
 #define GPIO_PIN_0  0U
 #define GPIO_PIN_1  1U
