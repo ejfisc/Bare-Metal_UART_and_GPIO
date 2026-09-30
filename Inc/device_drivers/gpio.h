@@ -2,10 +2,11 @@
 // Created by Ethan Fischer on 9/20/26.
 //
 
-#ifndef DEVICE_DRIVERS_GPIO_H_
-#define DEVICE_DRIVERS_GPIO_H_
+#ifndef GPIO_H_
+#define GPIO_H_
 
 #include "../device_headers/stm32f446xx.h"
+#include <stdbool.h>
 
 #define GPIO_PIN_0  0U
 #define GPIO_PIN_1  1U
@@ -26,6 +27,8 @@
 
 #define GPIO_HIGH   1U
 #define GPIO_LOW    0U
+
+#define LCK_BIT_POS (1U << 16)
 
 typedef enum {
     GPIO_MODE_INPUT     = 0U,
@@ -79,4 +82,13 @@ void GPIO_WritePin(GPIO_TypeDef * port,
                    uint8_t value);
 
 
-#endif //DEVICE_DRIVERS_GPIO_H_
+/**
+ * Locks GPIO pin configuration for the pins set in the mask
+ * @param port GPIO port base address (e.g., GPIOA)
+ * @param mask Pin 0..15
+ * @return true if lock key is active
+ */
+bool GPIO_LockPins(GPIO_TypeDef * port, uint32_t mask);
+
+
+#endif //GPIO_H_

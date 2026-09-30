@@ -29,10 +29,28 @@ void GPIO_WritePin(GPIO_TypeDef * port,
                     const uint8_t value) {
     if (value == 1) {
         // turn the pin on
-        port->BSRR |= (1UL << pin);
+        port->BSRR = (1UL << pin);
     }
     else {
         // turn the pin off
-        port->BSRR |= (1UL << (pin + 16U));
+        port->BSRR = (1UL << (pin + 16U));
     }
 }
+
+bool GPIO_LockPins(GPIO_TypeDef * port, uint32_t mask) {
+    uint32_t gpio_lock = 0;
+
+    gpio_lock = LCK_BIT_POS | mask;
+    port->LCKR = gpio_lock;     // LCKR[16] = 1 + LCKR{15:0]
+    port->LCKR = mask;          // LCKR[16] = 0 + LCKR[15:0]
+    port->LCKR = gpio_lock;     // LCKR[16] = 1 + LCKR[15:0]
+    port->LCKR;                 // dummy read to finish lock key write sequence
+
+    if (port->LCKR & LCK_BIT_POS) {
+        return true; // lock key active
+    }
+
+    return false; // lock key inactive something went wrong
+
+}
+

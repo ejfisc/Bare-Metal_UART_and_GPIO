@@ -25,28 +25,28 @@
 #define BUTTON_PRESSED 0U // active low
 #define BUTTON_RELEASED 1U
 
-uint32_t LEDState = LED_OFF;
-volatile uint32_t buttonState = BUTTON_RELEASED;
+static uint32_t LEDState = LED_OFF;
+static volatile uint32_t buttonState = BUTTON_RELEASED;
+static volatile uint32_t buttonPressCount = 0;
 
-void led_init()
-{
+static void gpio_init() {
   // turn the clock on for GPIOA
   RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN;
 
-  GPIO_Init(GPIOA, GPIO_PIN_5, GPIO_MODE_OUTPUT,
-    GPIO_OTYPE_PUSHPULL, GPIO_OSPEED_LOW, GPIO_PULL_NONE);
-
-  // turn LED on - write a 1 to BS5 bit in GPIOA_BSRR
-  // GPIOA->BSRR |= 0x20;
-  GPIO_WritePin(GPIOA, GPIO_PIN_5, 1);
-  LEDState = LED_ON;
-}
-
-void button_init()
-{
   // turn on the clock for GPIOC
   RCC->AHB1ENR |= RCC_AHB1ENR_GPIOCEN;
+}
 
+static void led_init()
+{
+  // set PA5 as output
+  GPIO_Init(GPIOA, GPIO_PIN_5, GPIO_MODE_OUTPUT,
+    GPIO_OTYPE_PUSHPULL, GPIO_OSPEED_LOW, GPIO_PULL_NONE);
+}
+
+static void button_init()
+{
+  // set PC13 as input
   GPIO_Init(GPIOC, GPIO_PIN_13, GPIO_MODE_INPUT, GPIO_OTYPE_PUSHPULL, GPIO_OSPEED_LOW, GPIO_PULL_NONE);
 
   // enable syscfg clock
@@ -65,7 +65,20 @@ void button_init()
   NVIC_EnableIRQ(EXTI15_10_IRQn);
 }
 
-void toggle_led()
+static void led_on()
+{
+  GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_HIGH);
+  LEDState = LED_ON;
+}
+
+static void led_off()
+{
+  GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_LOW);
+  LEDState = LED_OFF;
+}
+
+
+static void toggle_led()
 {
   if (LEDState == LED_ON)
   {
@@ -80,7 +93,7 @@ void toggle_led()
 }
 
 /**
-  * @brief This function handles EXTI line[15:10] interrupts.
+  * @brief This function handles EXTI line[15:10] interrupts. - cannot be made static, can't be called by NVIC if it's static
   */
 void EXTI15_10_IRQHandler(void)
 {
@@ -96,18 +109,50 @@ void EXTI15_10_IRQHandler(void)
   */
 int main(void)
 {
+  bool gpio_lock = 0;
 
+  gpio_init();
   led_init();
   button_init();
 
+  gpio_lock = GPIO_LockPins(GPIOC, (1UL << GPIO_PIN_13));
+
+  if (GPIOC->LCKR & LCK_BIT_POS) {
+    // blink
+    led_on();
+    for (uint32_t i = 0; i < 10000U; i++) {}
+    led_off();
+    for (uint32_t i = 0; i < 10000U; i++) {}
+    led_on();
+  }
+
+  for (uint32_t i = 0; i < 50000U; i++) {}
+
+  gpio_lock = GPIO_LockPins(GPIOA, (1UL << GPIO_PIN_5));
+
+  if (GPIOA->LCKR & LCK_BIT_POS) {
+    // blink
+    led_on();
+    for (uint32_t i = 0; i < 10000U; i++) {}
+    led_off();
+    for (uint32_t i = 0; i < 10000U; i++) {}
+    led_on();
+  }
+
   while (1)
   {
-    if (buttonState == BUTTON_PRESSED)
-    {
-      // printf("Button Pressed\r\n");
-      toggle_led();
-      buttonState = BUTTON_RELEASED;
-    }
+    // if (buttonState == BUTTON_PRESSED)
+    // {
+    //   // printf("Button Pressed\r\n");
+    //   buttonPressCount++;
+    //   if (buttonPressCount == 2) {
+    //     toggle_led();
+    //     buttonPressCount = 0;
+    //   }
+    //
+    //
+    //   buttonState = BUTTON_RELEASED;
+    // }
   }
 }
 
