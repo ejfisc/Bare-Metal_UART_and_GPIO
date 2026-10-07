@@ -34,7 +34,9 @@ enable_language(C ASM)
 # Create an executable object type
 add_executable(${CMAKE_PROJECT_NAME}
         Src/device_drivers/gpio.c
-        Inc/device_headers/cmsis_gcc.h)
+        Inc/device_headers/cmsis_gcc.h
+        Src/device_drivers/systick.c
+        Inc/device_drivers/systick.h)
 
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)

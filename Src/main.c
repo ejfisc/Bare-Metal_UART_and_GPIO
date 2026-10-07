@@ -17,6 +17,7 @@
   */
 #include "device_headers/stm32f446xx.h"
 #include "device_drivers/gpio.h"
+#include "device_drivers/systick.h"
 
 /* LED State */
 #define LED_ON 1U
@@ -109,35 +110,14 @@ void EXTI15_10_IRQHandler(void)
   */
 int main(void)
 {
-  bool gpio_lock = 0;
+  uint32_t reg = 0;
 
   gpio_init();
   led_init();
   button_init();
+  systick_init();
 
-  gpio_lock = GPIO_LockPins(GPIOC, (1UL << GPIO_PIN_13));
 
-  if (GPIOC->LCKR & LCK_BIT_POS) {
-    // blink
-    led_on();
-    for (uint32_t i = 0; i < 10000U; i++) {}
-    led_off();
-    for (uint32_t i = 0; i < 10000U; i++) {}
-    led_on();
-  }
-
-  for (uint32_t i = 0; i < 50000U; i++) {}
-
-  gpio_lock = GPIO_LockPins(GPIOA, (1UL << GPIO_PIN_5));
-
-  if (GPIOA->LCKR & LCK_BIT_POS) {
-    // blink
-    led_on();
-    for (uint32_t i = 0; i < 10000U; i++) {}
-    led_off();
-    for (uint32_t i = 0; i < 10000U; i++) {}
-    led_on();
-  }
 
   while (1)
   {
@@ -153,6 +133,9 @@ int main(void)
     //
     //   buttonState = BUTTON_RELEASED;
     // }
+
+    systick_ms_delay(500);
+    toggle_led();
   }
 }
 
