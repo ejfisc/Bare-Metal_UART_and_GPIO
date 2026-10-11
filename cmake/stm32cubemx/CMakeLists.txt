@@ -16,16 +16,16 @@ set(MX_Include_Dirs
 
 # STM32CubeMX generated application sources
 set(MX_Application_Src
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../Src/main.c
+        ../../Src/application/main.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Src/stm32f4xx_it.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../Src/sysmem.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../Src/syscalls.c
+        ../../Src/CMSIS/sysmem.c
+        ../../Src/CMSIS/syscalls.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../startup_stm32f446xx.s
 )
 
 # STM32 HAL/LL Drivers
 set(STM32_Drivers_Src
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../Src/system_stm32f4xx.c
+        ../../Src/CMSIS/system_stm32f4xx.c
 )
 
 # Drivers Midllewares

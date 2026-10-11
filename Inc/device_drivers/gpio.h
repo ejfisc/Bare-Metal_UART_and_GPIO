@@ -55,6 +55,25 @@ typedef enum {
     GPIO_PULL_DOWN,
 } GPIO_PULL_t;
 
+typedef enum {
+    GPIO_AF0 = 0U,  // SYS
+    GPIO_AF1,       // TIM1/2
+    GPIO_AF2,       // TIM3/4/5
+    GPIO_AF3,       // TIM8/9/10/11, CEC
+    GPIO_AF4,       // I2C1/2/3/4, CEC
+    GPIO_AF5,       // SPI1/2/3/4
+    GPIO_AF6,       // SPI2/3/4, SAI1
+    GPIO_AF7,       // SPI/2/3, USART1/2/3, UART5, SPDIFRX
+    GPIO_AF8,       // SAI, USART6, UART4/5, SPDIFRX
+    GPIO_AF9,       // CAN1/2, TIM12/13/14, QUADSPI
+    GPIO_AF10,      // SAI2, QUADSPI, OTG2_HS, OTG1_FS
+    GPIO_AF11,      // OTG1_FS
+    GPIO_AF12,      // FMC, SDIO, OTG2_FS
+    GPIO_AF13,      // DCMI
+    GPIO_AF14,      // Reserved
+    GPIO_AF15,      // SYS
+} GPIO_AF_t;
+
 /**
  * Initialize a GPIO pin with basic configuration options
  * @param port GPIO port base address (e.g., GPIOA)
@@ -81,6 +100,13 @@ void GPIO_WritePin(GPIO_TypeDef * port,
                    uint8_t pin,
                    uint8_t value);
 
+/**
+ * Returns the pin value set in the IDR register
+ * @param port GPIO port base address (e.g., GPIOA)
+ * @param pin Pin number (0-15)
+ * @return pin value high or low
+ */
+uint8_t GPIO_ReadPin(const GPIO_TypeDef * port, uint8_t pin);
 
 /**
  * Locks GPIO pin configuration for the pins set in the mask
@@ -89,6 +115,17 @@ void GPIO_WritePin(GPIO_TypeDef * port,
  * @return true if lock key is active
  */
 bool GPIO_LockPins(GPIO_TypeDef * port, uint32_t mask);
+
+
+/**
+ * Sets the alternate function mode for the given pin
+ * @param port GPIO port base address (e.g., GPIOA)
+ * @param pin Pin number (0-15)
+ * @param alt alternate function for pin
+ */
+void GPIO_SetAlternateFunction(GPIO_TypeDef * port,
+                                uint8_t pin,
+                                GPIO_AF_t alt);
 
 
 #endif //GPIO_H_

@@ -36,7 +36,17 @@ add_executable(${CMAKE_PROJECT_NAME}
         Src/device_drivers/gpio.c
         Inc/device_headers/cmsis_gcc.h
         Src/device_drivers/systick.c
-        Inc/device_drivers/systick.h)
+        Inc/device_drivers/systick.h
+        Src/device_drivers/usart2.c
+        Inc/device_drivers/usart2.h
+        Src/modules/events.c
+        Inc/modules/events.h
+        Src/modules/logger.c
+        Inc/modules/logger.h
+        Inc/modules/logger.h
+        Src/modules/queue.c
+        Inc/modules/queue.h
+)
 
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)

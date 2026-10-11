@@ -15,9 +15,12 @@
   *
   ******************************************************************************
   */
+#include <stdio.h>
+
 #include "device_headers/stm32f446xx.h"
 #include "device_drivers/gpio.h"
 #include "device_drivers/systick.h"
+#include "device_drivers/usart2.h"
 
 /* LED State */
 #define LED_ON 1U
@@ -25,21 +28,40 @@
 /* Button State */
 #define BUTTON_PRESSED 0U // active low
 #define BUTTON_RELEASED 1U
+// #define DEBOUNCE_MS 20
+// #define GAP_MS 300
+// #define MAX_PRESSES 3
+//
+// typedef enum { BTN_NONE, BTN_SINGLE, BTN_DOUBLE, BTN_TRIPLE } btn_event_t;
 
-static uint32_t LEDState = LED_OFF;
-static volatile uint32_t buttonState = BUTTON_RELEASED;
+
+static uint32_t LED_state = LED_OFF;
+static volatile uint32_t button_state = BUTTON_RELEASED;
 static volatile uint32_t buttonPressCount = 0;
+static volatile char usart2_rx;
+static volatile bool usart2_rx_cplt = false;
 
-static void gpio_init() {
-  // turn the clock on for GPIOA
-  RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN;
+/*
+ * HSI 16MHz -> SYSCLK / 1 -> HCLK / 1 -> APB1_CLK / 1 = 16MHz
+ */
+static void configure_clocks(void)
+{
+  // set system clock to HSI 16MHz
+  RCC->CFGR &= ~(RCC_CFGR_SW);
 
-  // turn on the clock for GPIOC
-  RCC->AHB1ENR |= RCC_AHB1ENR_GPIOCEN;
+  // set AHB1 prescaler to not divided
+  RCC->CFGR &= ~(RCC_CFGR_HPRE);
+
+  // set APB1 prescaler to not divided
+  RCC->CFGR &= ~(RCC_CFGR_PPRE1);
 }
+
 
 static void led_init()
 {
+  // turn the clock on for GPIOA
+  RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN;
+
   // set PA5 as output
   GPIO_Init(GPIOA, GPIO_PIN_5, GPIO_MODE_OUTPUT,
     GPIO_OTYPE_PUSHPULL, GPIO_OSPEED_LOW, GPIO_PULL_NONE);
@@ -47,6 +69,9 @@ static void led_init()
 
 static void button_init()
 {
+  // turn on the clock for GPIOC for button
+  RCC->AHB1ENR |= RCC_AHB1ENR_GPIOCEN;
+
   // set PC13 as input
   GPIO_Init(GPIOC, GPIO_PIN_13, GPIO_MODE_INPUT, GPIO_OTYPE_PUSHPULL, GPIO_OSPEED_LOW, GPIO_PULL_NONE);
 
@@ -56,40 +81,38 @@ static void button_init()
   // connect EXTI13 to PC13
   SYSCFG->EXTICR[3] |= SYSCFG_EXTICR4_EXTI13_PC;
 
-  // enable falling trigger on exti line 13
-  EXTI->FTSR |= EXTI_FTSR_TR13;
-
-  // unmask exti line 13
+  EXTI->FTSR |= EXTI_FTSR_TR13; // interrupt on falling edge (press)
+  // EXTI->RTSR |= EXTI_RTSR_TR13; // and rising edge (release)
   EXTI->IMR |= EXTI_IMR_IM13;
 
-  // enable exti line 13 interrupt in the NVIC
+  NVIC_SetPriority(EXTI15_10_IRQn, 1);
   NVIC_EnableIRQ(EXTI15_10_IRQn);
 }
 
 static void led_on()
 {
   GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_HIGH);
-  LEDState = LED_ON;
+  LED_state = LED_ON;
 }
 
 static void led_off()
 {
   GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_LOW);
-  LEDState = LED_OFF;
+  LED_state = LED_OFF;
 }
 
 
 static void toggle_led()
 {
-  if (LEDState == LED_ON)
+  if (LED_state == LED_ON)
   {
     GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_LOW);
-    LEDState = LED_OFF;
+    LED_state = LED_OFF;
   }
   else
   {
     GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_HIGH);
-    LEDState = LED_ON;
+    LED_state = LED_ON;
   }
 }
 
@@ -98,9 +121,17 @@ static void toggle_led()
   */
 void EXTI15_10_IRQHandler(void)
 {
-  EXTI->PR |= EXTI_PR_PR13; // clear pending register bit so the interrupt can fire again
+  // check if the interrupt happened on line 13
+  if (EXTI->PR & EXTI_PR_PR13) {
+    EXTI->PR = EXTI_PR_PR13; // clear using '=' not '|=' which would re-write a 1 to every other pending bit and clear it
+    button_state = BUTTON_PRESSED;
+  }
+}
 
-  buttonState = BUTTON_PRESSED;
+void USART2_IRQHandler(void)
+{
+  usart2_rx = (char)USART2->DR;
+  usart2_rx_cplt = true;
 }
 
 
@@ -110,32 +141,31 @@ void EXTI15_10_IRQHandler(void)
   */
 int main(void)
 {
-  uint32_t reg = 0;
-
-  gpio_init();
+  configure_clocks();
   led_init();
   button_init();
   systick_init();
-
-
+  usart2_init();
 
   while (1)
   {
-    // if (buttonState == BUTTON_PRESSED)
-    // {
-    //   // printf("Button Pressed\r\n");
-    //   buttonPressCount++;
-    //   if (buttonPressCount == 2) {
-    //     toggle_led();
-    //     buttonPressCount = 0;
-    //   }
-    //
-    //
-    //   buttonState = BUTTON_RELEASED;
-    // }
+    if (usart2_rx_cplt) {
+      // usart2_write_buf("Received: ");
+      // usart2_write(usart2_rx);
+      // usart2_write_buf("\r\n");
+      if (usart2_rx == 'h') {
+        led_on();
+      }
+      else if (usart2_rx == 'l') {
+        led_off();
+      }
+      usart2_rx_cplt = false;
+    }
 
-    systick_ms_delay(500);
-    toggle_led();
+    if (button_state == BUTTON_PRESSED) {
+      usart2_write_buf("button pressed!\r\n");
+      button_state = BUTTON_RELEASED;
+    }
   }
 }
 

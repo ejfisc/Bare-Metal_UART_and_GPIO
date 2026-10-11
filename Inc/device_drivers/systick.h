@@ -7,8 +7,9 @@
 #include "../device_headers/stm32f446xx.h"
 #include <stdint.h>
 
-#define INTERNAL_CLK_SPEED 16000000U // change this if AHB clock is configured differently
-#define ONE_MS_LOAD ((INTERNAL_CLK_SPEED / 1000U) - 1U)
+#define HSI_CLK_SPEED 16000000U // change this if AHB clock is configured differently
+#define SYSTICK_HZ HSI_CLK_SPEED
+#define ONE_MS_LOAD ((SYSTICK_HZ / 1000U) - 1U)
 
 
 /**
