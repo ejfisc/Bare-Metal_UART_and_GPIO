@@ -31,9 +31,6 @@
 /* Button State */
 #define BUTTON_PRESSED 0U // active low
 #define BUTTON_RELEASED 1U
-// #define DEBOUNCE_MS 20
-// #define GAP_MS 300
-// #define MAX_PRESSES 3
 
 typedef struct {
   uint32_t led_state;
