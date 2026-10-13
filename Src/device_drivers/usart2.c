@@ -4,9 +4,10 @@
 
 #include "device_drivers/usart2.h"
 
-#define UART_BRR(clk, baud) (((clk) + (baud / 2U)) / (baud))
+#define USART_BRR(clk, baud) (((clk) + (baud / 2U)) / (baud))
 
-static void uart_set_baudrate(uint32_t periph_clk, uint32_t baudrate);
+extern char usart2_rx;
+extern bool usart2_rx_cplt;
 
 void usart2_init(void)
 {
@@ -22,14 +23,17 @@ void usart2_init(void)
     // enable USART2 peripheral
     RCC->APB1ENR |= RCC_APB1ENR_USART2EN;
 
-    // set oversampling mode to oversampling by 16
-    USART2->CR1 &= ~(USART_CR1_OVER8);
+    USART2->CR1 &= ~(USART_CR1_OVER8); // set oversampling mode to oversampling by 16
+    usart2_ioctl_set_baudrate(USART2_BAUDRATE);
 
-    uart_set_baudrate(APB1_CLK_SPEED, UART_BAUDRATE);
-
-    // enable USART and turn on transmitter and receiver
-    USART2->CR1 = USART_CR1_TE | USART_CR1_RE | USART_CR1_RXNEIE | USART_CR1_UE;
+    USART2->CR1 = USART_CR1_TE | USART_CR1_RE | USART_CR1_RXNEIE | USART_CR1_UE; // enable USART, transmitter, receiver, and rx interrupt
     NVIC_EnableIRQ(USART2_IRQn);
+}
+
+void usart2_close(void) {
+    NVIC_DisableIRQ(USART2_IRQn);
+    USART2->CR1 = 0UL; // Reset value disables USART, transmitter, receiver, and rx interrupt
+    RCC->APB1ENR &= ~RCC_APB1ENR_USART2EN; // disable USART2 peripheral
 }
 
 void usart2_write(const char tx)
@@ -51,13 +55,19 @@ void usart2_write_buf(const char* tx)
 
 char usart2_read(void)
 {
+    // wait for data in rx data register
     while (!(USART2->SR & USART_SR_RXNE)) {}
     return ((char)USART2->DR);
 }
 
 
-
-static void uart_set_baudrate(const uint32_t periph_clk, const uint32_t baudrate)
+void usart2_ioctl_set_baudrate(const uint32_t baudrate)
 {
-    USART2->BRR = UART_BRR(periph_clk, baudrate);
+    USART2->BRR = USART_BRR(SYS_CLK_SPEED, baudrate);
+}
+
+void USART2_IRQHandler(void)
+{
+    usart2_rx = (char)USART2->DR;
+    usart2_rx_cplt = true;
 }

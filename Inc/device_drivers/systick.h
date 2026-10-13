@@ -18,6 +18,11 @@
 void systick_init(void);
 
 /**
+ *  disables system tick timer
+ */
+void systick_close(void);
+
+/**
  *  system tick countdown interrupt handler
  */
 void SysTick_Handler(void);

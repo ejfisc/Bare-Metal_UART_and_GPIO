@@ -18,9 +18,12 @@
 #include <stdio.h>
 
 #include "device_headers/stm32f446xx.h"
+#include "device_drivers/clocks.h"
 #include "device_drivers/gpio.h"
 #include "device_drivers/systick.h"
 #include "device_drivers/usart2.h"
+#include "modules/logger.h"
+#include "modules/event_queue.h"
 
 /* LED State */
 #define LED_ON 1U
@@ -31,31 +34,19 @@
 // #define DEBOUNCE_MS 20
 // #define GAP_MS 300
 // #define MAX_PRESSES 3
-//
-// typedef enum { BTN_NONE, BTN_SINGLE, BTN_DOUBLE, BTN_TRIPLE } btn_event_t;
 
+typedef struct {
+  uint32_t led_state;
+  volatile uint32_t button_state;
+} app_state_t;
 
-static uint32_t LED_state = LED_OFF;
-static volatile uint32_t button_state = BUTTON_RELEASED;
-static volatile uint32_t buttonPressCount = 0;
-static volatile char usart2_rx;
-static volatile bool usart2_rx_cplt = false;
+static app_state_t app = {
+  .led_state = LED_OFF,
+  .button_state = BUTTON_RELEASED
+};
 
-/*
- * HSI 16MHz -> SYSCLK / 1 -> HCLK / 1 -> APB1_CLK / 1 = 16MHz
- */
-static void configure_clocks(void)
-{
-  // set system clock to HSI 16MHz
-  RCC->CFGR &= ~(RCC_CFGR_SW);
-
-  // set AHB1 prescaler to not divided
-  RCC->CFGR &= ~(RCC_CFGR_HPRE);
-
-  // set APB1 prescaler to not divided
-  RCC->CFGR &= ~(RCC_CFGR_PPRE1);
-}
-
+volatile char usart2_rx = '\0';
+volatile bool usart2_rx_cplt = false;
 
 static void led_init()
 {
@@ -92,48 +83,41 @@ static void button_init()
 static void led_on()
 {
   GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_HIGH);
-  LED_state = LED_ON;
+  app.led_state = LED_ON;
 }
 
 static void led_off()
 {
   GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_LOW);
-  LED_state = LED_OFF;
+  app.led_state = LED_OFF;
 }
 
 
 static void toggle_led()
 {
-  if (LED_state == LED_ON)
+  if (app.led_state == LED_ON)
   {
     GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_LOW);
-    LED_state = LED_OFF;
+    app.led_state = LED_OFF;
   }
   else
   {
     GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_HIGH);
-    LED_state = LED_ON;
+    app.led_state = LED_ON;
   }
 }
 
 /**
-  * @brief This function handles EXTI line[15:10] interrupts. - cannot be made static, can't be called by NVIC if it's static
+  * @brief This function handles EXTI line[15:10] interrupts
   */
 void EXTI15_10_IRQHandler(void)
 {
   // check if the interrupt happened on line 13
   if (EXTI->PR & EXTI_PR_PR13) {
     EXTI->PR = EXTI_PR_PR13; // clear using '=' not '|=' which would re-write a 1 to every other pending bit and clear it
-    button_state = BUTTON_PRESSED;
+    app.button_state = BUTTON_PRESSED;
   }
 }
-
-void USART2_IRQHandler(void)
-{
-  usart2_rx = (char)USART2->DR;
-  usart2_rx_cplt = true;
-}
-
 
 /**
   * @brief  The application entry point.
@@ -141,18 +125,17 @@ void USART2_IRQHandler(void)
   */
 int main(void)
 {
-  configure_clocks();
-  led_init();
-  button_init();
+  clocks_16MHz_init();
   systick_init();
   usart2_init();
+  log_init();
+  led_init();
+  button_init();
+
 
   while (1)
   {
     if (usart2_rx_cplt) {
-      // usart2_write_buf("Received: ");
-      // usart2_write(usart2_rx);
-      // usart2_write_buf("\r\n");
       if (usart2_rx == 'h') {
         led_on();
       }
@@ -162,9 +145,9 @@ int main(void)
       usart2_rx_cplt = false;
     }
 
-    if (button_state == BUTTON_PRESSED) {
+    if (app.button_state == BUTTON_PRESSED) {
       usart2_write_buf("button pressed!\r\n");
-      button_state = BUTTON_RELEASED;
+      app.button_state = BUTTON_RELEASED;
     }
   }
 }

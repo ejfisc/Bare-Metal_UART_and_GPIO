@@ -39,13 +39,13 @@ add_executable(${CMAKE_PROJECT_NAME}
         Inc/device_drivers/systick.h
         Src/device_drivers/usart2.c
         Inc/device_drivers/usart2.h
-        Src/modules/events.c
-        Inc/modules/events.h
         Src/modules/logger.c
         Inc/modules/logger.h
         Inc/modules/logger.h
-        Src/modules/queue.c
-        Inc/modules/queue.h
+        Src/modules/event_queue.c
+        Inc/modules/event_queue.h
+        Src/device_drivers/clocks.c
+        Inc/device_drivers/clocks.h
 )
 
 # Add STM32CubeMX generated sources

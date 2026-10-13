@@ -16,6 +16,12 @@ void systick_init(void) {
                     | SysTick_CTRL_ENABLE_Msk; // start countdown
 }
 
+void systick_close(void) {
+    SysTick->CTRL = 4UL; // Reset value
+    NVIC_DisableIRQ(SysTick_IRQn);
+    SysTick->VAL = 0;
+}
+
 void SysTick_Handler(void) {
     ms_ticks++;
 }
