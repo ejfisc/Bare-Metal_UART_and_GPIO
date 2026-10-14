@@ -6,6 +6,7 @@
 
 #include "../device_headers/stm32f446xx.h"
 #include <stdint.h>
+#include <stdlib.h>
 
 #define HSI_CLK_SPEED 16000000U // change this if AHB clock is configured differently
 #define SYSTICK_HZ HSI_CLK_SPEED

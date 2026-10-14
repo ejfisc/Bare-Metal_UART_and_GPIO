@@ -42,7 +42,7 @@ static app_state_t app = {
   .button_state = BUTTON_RELEASED
 };
 
-volatile char usart2_rx = '\0';
+volatile uint8_t usart2_rx;
 volatile bool usart2_rx_cplt = false;
 
 static void led_init()
@@ -126,6 +126,7 @@ int main(void)
   systick_init();
   usart2_init();
   log_init();
+  log_set_output_level(LOG_BTN, LOG_LVL_DEBUG);
   led_init();
   button_init();
 
@@ -133,17 +134,17 @@ int main(void)
   while (1)
   {
     if (usart2_rx_cplt) {
-      if (usart2_rx == 'h') {
+      if (usart2_rx == (uint8_t)'h') {
         led_on();
       }
-      else if (usart2_rx == 'l') {
+      else if (usart2_rx == (uint8_t)'l') {
         led_off();
       }
       usart2_rx_cplt = false;
     }
 
     if (app.button_state == BUTTON_PRESSED) {
-      usart2_write_buf("button pressed!\r\n");
+      log_print(LOG_BTN, LOG_LVL_INFO, "Button Pressed!");
       app.button_state = BUTTON_RELEASED;
     }
   }

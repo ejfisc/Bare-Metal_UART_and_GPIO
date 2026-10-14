@@ -6,7 +6,7 @@
 
 #define USART_BRR(clk, baud) (((clk) + (baud / 2U)) / (baud))
 
-extern char usart2_rx;
+extern uint8_t usart2_rx;
 extern bool usart2_rx_cplt;
 
 void usart2_init(void)
@@ -23,10 +23,13 @@ void usart2_init(void)
     // enable USART2 peripheral
     RCC->APB1ENR |= RCC_APB1ENR_USART2EN;
 
-    USART2->CR1 &= ~(USART_CR1_OVER8); // set oversampling mode to oversampling by 16
-    usart2_ioctl_set_baudrate(USART2_BAUDRATE);
+    // set oversample to 16, word length to 8 data bits, and no parity control
+    USART2->CR1 &= ~(USART_CR1_OVER8 | USART_CR1_M | USART_CR1_PCE);
 
-    USART2->CR1 = USART_CR1_TE | USART_CR1_RE | USART_CR1_RXNEIE | USART_CR1_UE; // enable USART, transmitter, receiver, and rx interrupt
+    usart2_ioctl(SET_BAUDRATE, USART2_BAUDRATE);
+
+    // enable USART, transmitter, receiver, and rx interrupt
+    USART2->CR1 |= USART_CR1_TE | USART_CR1_RE | USART_CR1_RXNEIE | USART_CR1_UE;
     NVIC_EnableIRQ(USART2_IRQn);
 }
 
@@ -36,7 +39,7 @@ void usart2_close(void) {
     RCC->APB1ENR &= ~RCC_APB1ENR_USART2EN; // disable USART2 peripheral
 }
 
-void usart2_write(const char tx)
+void usart2_write(const uint8_t tx)
 {
     // make sure transmit data register is empty
     while (!(USART2->SR & USART_SR_TXE)) {}
@@ -45,11 +48,11 @@ void usart2_write(const char tx)
     USART2->DR = tx;
 }
 
-void usart2_write_buf(const char* tx)
+void usart2_write_buf(const uint8_t* buf, const uint16_t len)
 {
-    while (*tx != '\0') {
-        usart2_write(*tx);
-        tx++;
+    if (len > MAX_BUF_LEN) { return; }
+    for (uint16_t i = 0; i < len; i++) {
+        usart2_write(buf[i]);
     }
 }
 
@@ -60,14 +63,18 @@ char usart2_read(void)
     return ((char)USART2->DR);
 }
 
-
-void usart2_ioctl_set_baudrate(const uint32_t baudrate)
-{
-    USART2->BRR = USART_BRR(SYS_CLK_SPEED, baudrate);
+void usart2_ioctl(const USART_IOCTL_t cmd, const uint32_t data) {
+    switch (cmd) {
+        case SET_BAUDRATE:
+            USART2->BRR = USART_BRR(PERIPH_CLK_SPEED, data);
+            break;
+        default:
+            break;
+    }
 }
 
 void USART2_IRQHandler(void)
 {
-    usart2_rx = (char)USART2->DR;
+    usart2_rx = USART2->DR;
     usart2_rx_cplt = true;
 }
