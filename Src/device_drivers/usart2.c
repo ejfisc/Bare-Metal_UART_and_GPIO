@@ -76,9 +76,8 @@ void usart2_ioctl(const USART_IOCTL_t cmd, const uint32_t data) {
 void USART2_IRQHandler(void)
 {
     if (USART2->SR & (USART_SR_RXNE | USART_SR_ORE)) {
-        usart2_rx = USART2->DR; // read SR then DR clears overrun error flag
-        if (USART2->SR & USART_SR_RXNE) {
-            usart2_rx_cplt = true;
-        }
+        // ignore overrun error for now - a cmd will be lost but not a problem in this context
+        usart2_rx = USART2->DR; // read SR then DR clears ORE flag
+        usart2_rx_cplt = true;
     }
 }
