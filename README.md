@@ -18,10 +18,6 @@ patterns in *Making Embedded Systems* (Elecia White).
 - [x] SysTick ARM core peripheral driver to blink the LED
 - [x] USART peripheral driver for printing to serial console and receiving commands
 - [x] Logger module with SysTick timestamps, using hand-written formatting instead of STDIO to keep it small and to practice working under resource constraints
-- [ ] Event queue module
-- [ ] Button double and triple click detection with software debounce
-- [ ] DMA for USART driver
-- [ ] FreeRTOS implementation
 
 ## Hardware
 
