@@ -1,6 +1,6 @@
 # STM32F446 Bare-Metal Practice Project
 
-A small, in-progress firmware project for the STM32F446RE, written in C and programmed directly through peripheral registers, with no ST HAL or generated code. 
+A small, firmware project for the STM32F446RE, written in C and programmed directly through peripheral registers, with no ST HAL or generated code. 
 I built it to get hands-on, register-level experience working from the reference manual, and to practice structuring embedded software using the architecture 
 patterns in *Making Embedded Systems* (Elecia White).
 
